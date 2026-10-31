@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Geometry stays inside the 66dp safe zone (21..87). -->
+
+    <!-- bus stop sign: rounded square outline -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#CDE2FB"
+        android:strokeWidth="3"
+        android:pathData="M37,31 h34 a6,6 0 0 1 6,6 v26 a6,6 0 0 1 -6,6 h-34 a6,6 0 0 1 -6,-6 v-26 a6,6 0 0 1 6,-6 z" />
+
+    <!-- pulse line across the sign -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M25,50 h14 l5,-11 l7,22 l6,-15 l4,4 h22" />
+
+    <!-- sign pole -->
+    <path
+        android:fillColor="#CDE2FB"
+        android:pathData="M52.5,69 h3 v12 h-3 z" />
+</vector>

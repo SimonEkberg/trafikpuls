@@ -1,0 +1,28 @@
+{
+  "timestamp": "2025-05-02T15:10:56",
+  "query": { "queryTime": "2025-05-02T15:10:56", "query": "sto" },
+  "stop_groups": [
+    {
+      "id": "740098000",
+      "name": "Stockholm",
+      "area_type": "META_STOP",
+      "average_daily_stop_times": 3198.92,
+      "transport_modes": ["BUS", "TRAIN", "TRAM", "METRO"],
+      "stops": [
+        { "id": "1", "name": "Stockholm Centralstation", "lat": 59.331537, "lon": 18.054943 },
+        { "id": "1617", "name": "Stockholm City", "lat": 59.331139, "lon": 18.059447 },
+        { "id": "12275", "name": "T-Centralen", "lat": 59.33212, "lon": 18.062138 }
+      ]
+    },
+    {
+      "id": "740022197",
+      "name": "Karlstad Residenstorget",
+      "group_type": "RIKSHALLPLATS",
+      "average_daily_stop_times": 1411.87,
+      "transport_modes": ["BUS", "HOVERCRAFT"],
+      "stops": [
+        { "id": "41045", "name": "Karlstad, Residenstorget", "lat": 59.380121, "lon": 13.502586 }
+      ]
+    }
+  ]
+}

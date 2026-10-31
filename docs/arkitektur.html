@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trafikpuls – arkitektur och funktion</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7; --panel: #fcfcfb; --border: #e1e0d9;
+    --ink: #0b0b0b; --ink2: #52514e; --muted: #898781;
+    --accent: #1c5cab; --accent-bg: #cde2fb;
+    --ui: #2a78d6; --data: #1baf7a; --domain: #6250d6; --core: #898781; --bg: #eb6834; --ext: #d03b3b;
+    --code-bg: #f0efec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --page: #0d0d0d; --panel: #1a1a19; --border: #2c2c2a;
+      --ink: #f0efec; --ink2: #c3c2b7; --muted: #898781;
+      --accent: #86b6ef; --accent-bg: #184f95;
+      --ui: #3987e5; --data: #199e70; --domain: #9085e9; --core: #898781; --bg: #d95926; --ext: #e66767;
+      --code-bg: #262625;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { display: grid; grid-template-columns: 250px minmax(0, 1fr); max-width: 1400px; margin: 0 auto; }
+  nav { position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto; padding: 24px 16px; border-right: 1px solid var(--border); font-size: 14px; }
+  nav a { display: block; color: var(--ink2); text-decoration: none; padding: 3px 8px; border-radius: 6px; }
+  nav a:hover { background: var(--code-bg); color: var(--ink); }
+  nav .sub { padding-left: 20px; font-size: 13px; }
+  main { padding: 32px 40px 80px; min-width: 0; }
+  h1 { font-size: 30px; margin: 0 0 4px; }
+  h2 { font-size: 22px; margin: 48px 0 12px; padding-top: 8px; border-top: 1px solid var(--border); }
+  h3 { font-size: 17px; margin: 28px 0 8px; }
+  p, li { color: var(--ink); }
+  .lead { color: var(--ink2); font-size: 16px; max-width: 900px; }
+  code, .path { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 13px; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+  pre { background: var(--code-bg); padding: 12px 14px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.45; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0 16px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--ink2); font-weight: 600; background: var(--code-bg); }
+  tr:last-child td { border-bottom: none; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin: 12px 0; }
+  .note { border-left: 3px solid var(--accent); padding: 8px 14px; background: var(--panel); border-radius: 0 8px 8px 0; color: var(--ink2); }
+
+  /* ---------- Architecture diagram ---------- */
+  .arch { display: grid; gap: 10px; margin: 16px 0; }
+  .layer { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; align-items: stretch; }
+  .layer-label { display: flex; flex-direction: column; justify-content: center; padding: 10px 12px; border-radius: 10px; background: var(--panel); border: 1px solid var(--border); font-weight: 600; font-size: 14px; }
+  .layer-label small { font-weight: 400; color: var(--ink2); font-size: 12px; }
+  .layer-label .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .boxes { display: flex; flex-wrap: wrap; gap: 8px; }
+  .box { flex: 1 1 160px; background: var(--panel); border: 1px solid var(--border); border-top: 3px solid var(--c); border-radius: 8px; padding: 8px 10px; font-size: 13px; text-decoration: none; color: var(--ink); }
+  .box:hover { border-color: var(--c); }
+  .box b { display: block; font-size: 14px; }
+  .box span { color: var(--ink2); }
+  .arrow { text-align: center; color: var(--muted); font-size: 13px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--ink2); }
+  .legend i { display: inline-block; width: 18px; height: 3px; vertical-align: middle; margin-right: 6px; background: var(--c); }
+
+  /* ---------- Flow diagrams ---------- */
+  .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0; margin: 12px 0; }
+  .step { flex: 1 1 150px; background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--c, var(--accent)); border-radius: 8px; padding: 8px 10px; font-size: 13px; margin: 4px 0; }
+  .step b { display: block; font-size: 13px; }
+  .step code { font-size: 12px; }
+  .chev { align-self: center; padding: 0 6px; color: var(--muted); font-size: 18px; }
+  .tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--code-bg); color: var(--ink2); margin-left: 4px; }
+  @media (max-width: 900px) { .wrap { grid-template-columns: 1fr; } nav { display: none; } main { padding: 20px; } .layer { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav>
+  <a href="#oversikt"><b>Trafikpuls</b></a>
+  <a href="#arkitektur">1. Arkitekturöversikt</a>
+  <a href="#mappar">2. Mappstruktur</a>
+  <a href="#endpoints">3. Trafiklab-endpoints</a>
+  <a href="#floden">4. Dataflöden</a>
+  <a class="sub" href="#flode-oversikt">Översikten uppdateras</a>
+  <a class="sub" href="#flode-repo">Ett anrop genom repositoryt</a>
+  <a class="sub" href="#flode-filter">Linjefilter</a>
+  <a class="sub" href="#flode-sok">Sök och bevaka</a>
+  <a href="#skarmar">5. Skärmar</a>
+  <a href="#klasser">6. Klassreferens</a>
+  <a class="sub" href="#k-app">App och DI</a>
+  <a class="sub" href="#k-core">core</a>
+  <a class="sub" href="#k-domain">domain</a>
+  <a class="sub" href="#k-data">data</a>
+  <a class="sub" href="#k-ui">ui</a>
+  <a href="#lagring">7. Lagring</a>
+  <a href="#regler">8. Affärsregler</a>
+  <a href="#robust">9. Robusthet – siffror</a>
+  <a href="#bygg">10. Bygge och tester</a>
+  <a href="#hitta">11. "Var ändrar jag …?"</a>
+</nav>
+<main>
+
+<section id="oversikt">
+  <h1>Trafikpuls – arkitektur och funktion</h1>
+  <p class="lead">Android-app (Kotlin, Jetpack Compose) för driftövervakning av kollektivtrafik ovanpå
+  <b>Trafiklab Realtime APIs</b>. Den här sidan beskriver hur appen fungerar, vilka klasser som finns, vilka
+  endpoints som anropas och var i koden allt ligger. Alla sökvägar är relativa till
+  <span class="path">app/src/main/java/com/simon/trafikpuls/</span> om inget annat anges. Radnummer
+  anger var klassen börjar.</p>
+  <div class="card">
+    <b>Kort sammanfattat:</b> användaren bevakar upp till 8 hållplatser. Appen hämtar avgångar för nästa
+    60 minuter från Trafiklab, räknar ut punktlighet, förseningar, inställda turer, tidiga avgångar och
+    realtidstäckning, och visar dem per hållplats, per operatör (Nobina först) och totalt. Man kan borra ned
+    till en hållplats och vidare till en enskild tur med ett diagram över förseningen längs linjen. Per hållplats väljer man vilka
+    linjer och riktningar man följer, och varje avgång visar varifrån turen startar. Data hämtas bara
+    medan appen är öppen; inget körs i bakgrunden. Ett demoläge genererar fiktiv trafik i samma format
+    som API:t.
+  </div>
+</section>
+
+<section id="arkitektur">
+  <h2>1. Arkitekturöversikt</h2>
+  <p>Appen är skiktad. Pilarna går bara nedåt: UI känner till data och domain, data känner till domain,
+  domain känner inte till något annat än sig självt. All kommunikation uppåt sker via
+  <code>StateFlow</code>/<code>Flow</code>.</p>
+
+  <div class="legend">
+    <span style="--c:var(--ui)"><i></i>UI (Compose + ViewModels)</span>
+    <span style="--c:var(--data)"><i></i>Data (repositories, källor, lagring)</span>
+    <span style="--c:var(--domain)"><i></i>Domain (ren affärslogik)</span>
+    <span style="--c:var(--core)"><i></i>Core (gemensamma verktyg)</span>
+    <span style="--c:var(--ext)"><i></i>Externt</span>
+  </div>
+
+  <div class="arch">
+    <div class="layer">
+      <div class="layer-label"><span><span class="dot" style="background:var(--ui)"></span>Skärmar</span><small>ui/*Screen.kt</small></div>
+      <div class="boxes" style="--c:var(--ui)">
+        <a class="box" href="#s-dashboard"><b>DashboardScreen</b><span>Översikt / driftläge</span></a>
+        <a class="box" href="#s-stop"><b>StopBoardScreen</b><span>Avgångar för en hållplats</span></a>
+        <a class="box" href="#s-trip"><b>TripScreen</b><span>En tur + DelayChart</span></a>
+        <a class="box" href="#s-alerts"><b>AlertsScreen</b><span>Störningar</span></a>
+        <a class="box" href="#s-search"><b>SearchScreen</b><span>Sök och bevaka</span></a>
+        <a class="box" href="#s-settings"><b>SettingsScreen</b><span>Nyckel, trösklar, bevakning</span></a>
+      </div>
+    </div>
+    <div class="arrow">▼ observerar <code>uiState: StateFlow</code> · anropar funktioner ▼</div>
+    <div class="layer">
+      <div class="layer-label"><span><span class="dot" style="background:var(--ui)"></span>ViewModels</span><small>ui/*ViewModel.kt</small></div>
+      <div class="boxes" style="--c:var(--ui)">
+        <a class="box" href="#k-ui"><b>DashboardViewModel</b><span>buildDashboardState()</span></a>
+        <a class="box" href="#k-ui"><b>StopBoardViewModel</b><span>launchFetch() med generation</span></a>
+        <a class="box" href="#k-ui"><b>TripViewModel</b><span>TripAnalyzer</span></a>
+        <a class="box" href="#k-ui"><b>AlertsViewModel</b><span>buildAlertsState()</span></a>
+        <a class="box" href="#k-ui"><b>SearchViewModel</b><span>debounce + flatMapLatest</span></a>
+        <a class="box" href="#k-ui"><b>SettingsViewModel</b><span>skriver inställningar</span></a>
+      </div>
+    </div>
+    <div class="arrow">▼</div>
+    <div class="layer">
+      <div class="layer-label"><span><span class="dot" style="background:var(--data)"></span>Live-tillstånd</span><small>data/live</small></div>
+      <div class="boxes" style="--c:var(--data)">
+        <a class="box" href="#k-data"><b>WatchlistMonitor</b><span>Delat tillstånd för alla bevakade hållplatser. Används av översikt och störningar.</span></a>
+      </div>
+    </div>
+    <div class="arrow">▼</div>
+    <div class="layer">
+      <div class="layer-label"><span><span class="dot" style="background:var(--data)"></span>Repositories</span><small>data/repository, data/settings</small></div>
+      <div class="boxes" style="--c:var(--data)">
+        <a class="box" href="#k-data"><b>TrafficRepository</b><span>demo-växel → cache → retry → stale fallback</span></a>
+        <a class="box" href="#k-data"><b>WatchlistRepository</b><span>bevakningslistan (Room)</span></a>
+        <a class="box" href="#k-data"><b>SettingsRepository</b><span>inställningar (DataStore)</span></a>
+        <a class="box" href="#k-data"><b>LineFilterRepository</b><span>valda linjer per hållplats (Room)</span></a>
+      </div>
+    </div>
+    <div class="arrow">▼</div>
+    <div class="layer">
+      <div class="layer-label"><span><span class="dot" style="background:var(--data)"></span>Källor och lagring</span><small>data/source, demo, remote, local</small></div>
+      <div class="boxes" style="--c:var(--data)">
+        <a class="box" href="#k-data"><b>RemoteTrafiklabDataSource</b><span>nyckel + RateLimiter → Retrofit</span></a>
+        <a class="box" href="#k-data"><b>DemoTrafiklabDataSource</b><span>fiktiv trafik, samma DTO-format</span></a>
+        <a class="box" href="#k-data"><b>TrafiklabApi</b><span>Retrofit-interface</span></a>
+        <a class="box" href="#lagring"><b>TrafikpulsDatabase</b><span>Room: 3 tabeller</span></a>
+        <a class="box" href="#k-data"><b>TrafiklabMappers</b><span>DTO → domänmodell</span></a>
+      </div>
+    </div>
+    <div class="arrow">▼ HTTPS</div>
+    <div class="layer">
+      <div class="layer-label"><span><span class="dot" style="background:var(--ext)"></span>Externt</span><small>internet</small></div>
+      <div class="boxes" style="--c:var(--ext)">
+        <a class="box" href="#endpoints"><b>realtime-api.trafiklab.se/v1</b><span>departures · arrivals · trips · stops</span></a>
+      </div>
+    </div>
+  </div>
+
+  <div class="arch">
+    <div class="layer">
+      <div class="layer-label"><span><span class="dot" style="background:var(--domain)"></span>Domain</span><small>används av alla lager ovan</small></div>
+      <div class="boxes" style="--c:var(--domain)">
+        <a class="box" href="#k-domain"><b>PunctualityPolicy · BoardKpis</b><span>status, KPI:er, hälsa</span></a>
+        <a class="box" href="#k-domain"><b>TripAnalyzer</b><span>förseningsutveckling</span></a>
+        <a class="box" href="#k-domain"><b>Lines</b><span>linjefilter per riktning</span></a>
+        <a class="box" href="#k-domain"><b>Operators</b><span>operatörsfilter</span></a>
+        <a class="box" href="#k-domain"><b>model/*</b><span>TimetableEntry, StopBoard, TripDetails …</span></a>
+      </div>
+    </div>
+    <div class="layer">
+      <div class="layer-label"><span><span class="dot" style="background:var(--core)"></span>Core</span><small>core/</small></div>
+      <div class="boxes" style="--c:var(--core)">
+        <a class="box" href="#k-core"><b>AppError · Outcome</b><span>typade resultat</span></a>
+        <a class="box" href="#k-core"><b>ErrorMapper</b><span>exception → AppError</span></a>
+        <a class="box" href="#k-core"><b>retryTransient</b><span>backoff + jitter</span></a>
+        <a class="box" href="#k-core"><b>RateLimiter · TtlCache</b><span>kvot och minnescache</span></a>
+        <a class="box" href="#k-core"><b>Time</b><span>Europe/Stockholm</span></a>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">Beroendena kopplas ihop manuellt i <span class="path">AppContainer.kt</span> (en enda instans per
+  process, skapad i <span class="path">TrafikpulsApplication.kt</span>). ViewModels hämtar sina beroenden därifrån via
+  <span class="path">ui/ViewModelFactory.kt</span>.</p>
+</section>
+
+<section id="mappar">
+  <h2>2. Mappstruktur</h2>
+<pre><code>trafikpuls-app/
+├─ app/build.gradle.kts           # Byggskript; läser TRAFIKLAB_API_KEY → BuildConfig
+├─ gradle/libs.versions.toml      # Alla biblioteksversioner
+├─ local.properties               # sdk.dir + TRAFIKLAB_API_KEY (git-ignorerad)
+├─ build-apk.cmd                  # Kör tester + bygger debug-APK
+├─ app/schemas/                   # Exporterat Room-schema (för framtida migreringar)
+├─ docs/                          # README-bilder + denna sida
+└─ app/src/
+   ├─ main/AndroidManifest.xml    # Behörigheter, Application, MainActivity
+   ├─ main/res/                   # Ikoner, tema-XML, strängar, backup-regler
+   ├─ test/java/…                 # 61 enhetstester
+   ├─ test/resources/fixtures/    # JSON enligt Trafiklabs dokumentation
+   └─ main/java/com/simon/trafikpuls/
+      ├─ TrafikpulsApplication.kt # Startpunkt: skapar AppContainer
+      ├─ AppContainer.kt          # Manuell DI: kopplar ihop alla objekt
+      ├─ MainActivity.kt          # Enda Activity: sätter Compose-innehåll
+      ├─ core/                    # Fel, resultat, retry, rate limit, cache, tid
+      ├─ domain/                  # Affärslogik + modeller (ingen Android-kod)
+      │  └─ model/
+      ├─ data/
+      │  ├─ remote/  (+ dto/)     # Retrofit-API, OkHttp, JSON-DTO:er
+      │  ├─ source/               # TrafiklabDataSource (live)
+      │  ├─ demo/                 # Demoläge: fiktivt nät + generator
+      │  ├─ mapper/               # DTO → domän
+      │  ├─ local/                # Room: entiteter, DAO:er, databas
+      │  ├─ settings/             # DataStore-inställningar
+      │  ├─ repository/           # TrafficRepository, WatchlistRepository, LineFilterRepository
+      │  └─ live/                 # WatchlistMonitor (delat live-tillstånd)
+      └─ ui/
+         ├─ TrafikpulsAppRoot.kt  # Navigation + bottenmeny
+         ├─ navigation/Routes.kt  # Typsäkra rutter
+         ├─ theme/ format/ components/
+         └─ dashboard/ stop/ trip/ alerts/ search/ settings/</code></pre>
+</section>
+
+<section id="endpoints">
+  <h2>3. Trafiklab-endpoints</h2>
+  <p>Bas-URL: <code>https://realtime-api.trafiklab.se/v1/</code> (<span class="path">data/remote/NetworkModule.kt</span>).
+  Nyckeln skickas som query-parametern <code>key</code> och maskeras i loggar. Alla anrop deklareras i
+  <span class="path">data/remote/TrafiklabApi.kt</span> och görs via
+  <span class="path">data/source/TrafiklabDataSource.kt</span> (<code>RemoteTrafiklabDataSource</code>).</p>
+  <table>
+    <tr><th>Metod i TrafiklabApi</th><th>HTTP</th><th>Svar (DTO)</th><th>Används av</th></tr>
+    <tr><td><code>departures(areaId, key)</code></td><td><code>GET departures/{areaId}</code></td><td><code>BoardResponseDto</code></td><td>Översikt, hållplatsvy (prognos nästa 60 min), bakgrundsjobb</td></tr>
+    <tr><td><code>departuresAt(areaId, time, key)</code></td><td><code>GET departures/{areaId}/{yyyy-MM-ddTHH:mm}</code></td><td><code>BoardResponseDto</code></td><td>Hållplatsvy, "Utfall senaste 60 min" (tid = nu − 60 min)</td></tr>
+    <tr><td><code>arrivals(areaId, key)</code></td><td><code>GET arrivals/{areaId}</code></td><td><code>BoardResponseDto</code></td><td>Hållplatsvy, fliken Ankomster</td></tr>
+    <tr><td><code>arrivalsAt(areaId, time, key)</code></td><td><code>GET arrivals/{areaId}/{tid}</code></td><td><code>BoardResponseDto</code></td><td>Ankomster, senaste 60 min</td></tr>
+    <tr><td><code>trip(tripId, startDate, key)</code></td><td><code>GET trips/{tripId}/{yyyy-MM-dd}</code></td><td><code>TripDetailsResponseDto</code></td><td>Turvyn</td></tr>
+    <tr><td><code>searchStops(query, key)</code></td><td><code>GET stops/name/{query}</code></td><td><code>StopLookupResponseDto</code></td><td>Sök</td></tr>
+  </table>
+  <h3>Viktiga fält i svaren</h3>
+  <table>
+    <tr><th>Fält</th><th>Betydelse</th><th>Blir i domänen</th></tr>
+    <tr><td><code>scheduled</code> / <code>realtime</code></td><td>Tidtabell resp. beräknad/faktisk tid, lokal svensk tid utan tidszon</td><td><code>TimetableEntry.scheduled / expected</code></td></tr>
+    <tr><td><code>delay</code></td><td>Sekunder, negativt = tidig, 0 utan realtid</td><td><code>delaySeconds</code></td></tr>
+    <tr><td><code>canceled</code>, <code>is_realtime</code></td><td>Inställd, har realtidsdata</td><td><code>isCanceled</code>, <code>isRealtime</code></td></tr>
+    <tr><td><code>agency.operator</code></td><td>Kontrakterad operatör, t.ex. "Nobina Sverige AB"</td><td><code>operatorName</code> → operatörsfilter</td></tr>
+    <tr><td><code>route.designation</code>, <code>transport_mode</code>, <code>direction</code></td><td>Linjenummer, trafikslag, riktning</td><td><code>Line</code></td></tr>
+    <tr><td><code>trip.trip_id</code> + <code>start_date</code></td><td>Identifierar turen</td><td>Nyckel till <code>trips/</code>-anropet</td></tr>
+    <tr><td><code>scheduled_platform</code> / <code>realtime_platform</code></td><td>Läge</td><td><code>platformChanged</code></td></tr>
+    <tr><td><code>alerts[]</code> (avgång och hållplats)</td><td>Trafikmeddelanden (typ, titel, text)</td><td><code>Alert</code></td></tr>
+  </table>
+  <p class="note">Kvot på nivå Bronze: 25 anrop/minut och 100 000/månad. Trafiklab cachar tavlor i 60 sekunder,
+  så tätare hämtning ger ingen ny information. Ogiltig nyckel ger HTTP 403, vilket appen visar som "API-nyckel behövs".</p>
+</section>
+
+<section id="floden">
+  <h2>4. Dataflöden</h2>
+
+  <h3 id="flode-oversikt">4.1 Översikten uppdateras (varje minut medan den syns)</h3>
+  <div class="flow">
+    <div class="step" style="--c:var(--ui)"><b>DashboardScreen</b><code>LifecycleStartEffect</code> → <code>startAutoRefresh()</code></div><div class="chev">›</div>
+    <div class="step" style="--c:var(--ui)"><b>DashboardViewModel</b>loop: <code>monitor.refresh()</code> + vänta 60 s</div><div class="chev">›</div>
+    <div class="step" style="--c:var(--data)"><b>WatchlistMonitor.refresh()</b>Mutex, hämtar alla bevakade hållplatser, max 4 parallellt</div><div class="chev">›</div>
+    <div class="step" style="--c:var(--data)"><b>TrafficRepository.board()</b>se 4.2</div><div class="chev">›</div>
+    <div class="step" style="--c:var(--data)"><b>snapshot: StateFlow</b>uppdateras med StopBoard eller fel per hållplats</div><div class="chev">›</div>
+    <div class="step" style="--c:var(--domain)"><b>buildDashboardState()</b>filtrerar på operatör, räknar BoardKpis, sorterar avvikelser</div><div class="chev">›</div>
+    <div class="step" style="--c:var(--ui)"><b>Compose</b>ritar om</div>
+  </div>
+  <p>Samma <code>WatchlistMonitor</code> används av <code>AlertsViewModel</code>, så översikt och störningar visar alltid
+  samma data utan dubbla anrop. När skärmen inte syns (<code>onStopOrDispose</code>) avbryts loopen.</p>
+
+  <h3 id="flode-repo">4.2 Ett anrop genom TrafficRepository.board()</h3>
+  <p><span class="path">data/repository/TrafficRepository.kt</span></p>
+  <div class="flow">
+    <div class="step"><b>1. Demoläge?</b>Ja → <code>DemoTrafiklabDataSource</code>, klart (origin DEMO)</div><div class="chev">›</div>
+    <div class="step"><b>2. Lås per tavla</b><code>Mutex</code> per <code>"KIND:WINDOW:areaId"</code> – samtidiga anrop väntar</div><div class="chev">›</div>
+    <div class="step"><b>3. Färsk cache?</b>Room-rad &lt; 30 s → returnera (origin CACHE)</div><div class="chev">›</div>
+    <div class="step"><b>4. Hämta med retry</b><code>retryTransient</code>: varje försök kontrollerar nyckel + RateLimiter, sedan HTTP</div><div class="chev">›</div>
+    <div class="step"><b>5a. Lyckat</b>spara JSON i Room, mappa till <code>StopBoard</code> (origin NETWORK)</div><div class="chev">›</div>
+    <div class="step"><b>5b. Misslyckat</b>cache ≤ 30 min → visa som "sparad data" (stale), annars <code>Outcome.Failure(AppError)</code></div>
+  </div>
+
+  <h3 id="flode-filter">4.3 Linjefilter (vilka linjer du följer)</h3>
+  <div class="flow">
+    <div class="step" style="--c:var(--ui)"><b>StopBoardScreen</b>"Linjer" → <code>LineFilterSheet</code> (<span class="path">ui/stop/LineFilter.kt</span>)</div><div class="chev">›</div>
+    <div class="step" style="--c:var(--ui)"><b>StopBoardViewModel.setLineFilter()</b></div><div class="chev">›</div>
+    <div class="step" style="--c:var(--data)"><b>LineFilterRepository.setFilter()</b>ersätter valet i en transaktion</div><div class="chev">›</div>
+    <div class="step" style="--c:var(--data)"><b>Room</b>tabellen <code>line_filters</code></div><div class="chev">›</div>
+    <div class="step" style="--c:var(--data)"><b>filters: Flow</b>→ <code>WatchlistMonitor</code> filtrerar tavlan med <code>filterLines()</code></div><div class="chev">›</div>
+    <div class="step" style="--c:var(--ui)"><b>Översikt, störningar, hållplatsvy</b>räknar bara de valda linjerna</div>
+  </div>
+  <p>En linje identifieras per riktning med nyckeln <code>"TRAFIKSLAG|linje|riktning"</code>, t.ex. <code>BUS|311|Brommaplan</code>,
+  så att du kan följa en linje in mot stan utan att se samma linje ut. Inget valt = alla linjer.</p>
+
+  <h3 id="flode-sok">4.4 Sök och bevaka</h3>
+  <div class="flow">
+    <div class="step" style="--c:var(--ui)"><b>SearchScreen</b>användaren skriver</div><div class="chev">›</div>
+    <div class="step" style="--c:var(--ui)"><b>SearchViewModel</b>debounce 350 ms, minst 3 tecken, <code>flatMapLatest</code></div><div class="chev">›</div>
+    <div class="step" style="--c:var(--data)"><b>TrafficRepository.searchStops()</b>10 min minnescache</div><div class="chev">›</div>
+    <div class="step" style="--c:var(--ui)"><b>Stjärna</b><code>WatchlistRepository.add()</code> (max 8)</div><div class="chev">›</div>
+    <div class="step" style="--c:var(--data)"><b>WatchlistMonitor</b>ser ändringen (debounce 400 ms) och hämtar bara den nya hållplatsen</div>
+  </div>
+</section>
+
+<section id="skarmar">
+  <h2>5. Skärmar</h2>
+  <p>Navigering i <span class="path">ui/TrafikpulsAppRoot.kt</span>, rutter i <span class="path">ui/navigation/Routes.kt</span>.
+  Bottenmenyn (Översikt, Störningar, Sök) visas bara på toppnivå.</p>
+  <table>
+    <tr><th>Skärm / rutt</th><th>Filer</th><th>Visar och gör</th></tr>
+    <tr id="s-dashboard"><td><b>Översikt</b><br><code>DashboardRoute</code></td><td><span class="path">ui/dashboard/DashboardScreen.kt</span><br><span class="path">ui/dashboard/DashboardViewModel.kt</span></td>
+      <td>Operatörsfilter, punktlighet (stor siffra) + status, KPI-rutor (försenade, inställda, tidiga, realtidstäckning), "Avvikelser just nu" (max 8, sorterade efter allvarlighet), kort per bevakad hållplats. Tomt läge, nyckelfel och laddning hanteras separat.</td></tr>
+    <tr id="s-stop"><td><b>Hållplats</b><br><code>StopBoardRoute(areaId, name)</code></td><td><span class="path">ui/stop/StopBoardScreen.kt</span><br><span class="path">ui/stop/StopBoardViewModel.kt</span></td>
+      <td>Avgångar/Ankomster, Prognos nästa 60 min / Utfall senaste 60 min, <b>Linjer</b> (välj linjer/riktningar att följa – <span class="path">ui/stop/LineFilter.kt</span>), KPI-sammanfattning, hållplatsmeddelanden, lista med avgångar (varifrån turen startar, lägesbyte, meddelanden). Stjärna = bevaka.</td></tr>
+    <tr id="s-trip"><td><b>Tur</b><br><code>TripRoute(tripId, startDate, stopId)</code></td><td><span class="path">ui/trip/TripScreen.kt</span><br><span class="path">ui/trip/TripViewModel.kt</span><br><span class="path">ui/trip/DelayChart.kt</span></td>
+      <td>Linje, operatör, turnummer, start- och sluthållplats med tid. Försening nu, prognos vid ändhållplats, störst förseningsökning. Diagram (Canvas) med gränslinje, markerad värsta sträcka och tonad prognosdel. Tabell över alla hållplatser.</td></tr>
+    <tr id="s-alerts"><td><b>Störningar</b><br><code>AlertsRoute</code></td><td><span class="path">ui/alerts/AlertsScreen.kt</span><br><span class="path">ui/alerts/AlertsViewModel.kt</span></td>
+      <td>Alla trafikmeddelanden från bevakade hållplatser, sammanslagna. Påverkade linjer och antal avgångar, hållplatser som chips.</td></tr>
+    <tr id="s-search"><td><b>Sök</b><br><code>SearchRoute</code></td><td><span class="path">ui/search/SearchScreen.kt</span><br><span class="path">ui/search/SearchViewModel.kt</span></td>
+      <td>Hållplatssök, typ (rikshållplats/samlingshållplats), avgångar per dygn, trafikslag, stjärna för bevakning.</td></tr>
+    <tr id="s-settings"><td><b>Inställningar</b><br><code>SettingsRoute</code></td><td><span class="path">ui/settings/SettingsScreen.kt</span><br><span class="path">ui/settings/SettingsViewModel.kt</span></td>
+      <td>Demoläge, API-nyckel, punktlighetsgräns (1/2/3/5 min).</td></tr>
+  </table>
+</section>
+
+<section id="klasser">
+  <h2>6. Klassreferens</h2>
+
+  <h3 id="k-app">App och beroendeinjektion</h3>
+  <table>
+    <tr><th>Klass</th><th>Fil:rad</th><th>Ansvar</th></tr>
+    <tr><td><code>TrafikpulsApplication</code></td><td><span class="path">TrafikpulsApplication.kt:5</span></td><td>Skapar <code>AppContainer</code> och anropar <code>start()</code> när processen startar.</td></tr>
+    <tr><td><code>AppContainer</code></td><td><span class="path">AppContainer.kt:28</span></td><td>Bygger alla objekt (lazy): klocka, databas, inställningar, Retrofit, repositories, monitor. <code>start()</code> rensar gammal cache och tar bort eventuella bakgrundsjobb från äldre versioner (appen kör inget i bakgrunden).</td></tr>
+    <tr><td><code>MainActivity</code></td><td><span class="path">MainActivity.kt:10</span></td><td>Edge-to-edge, <code>TrafikpulsTheme { TrafikpulsAppRoot() }</code>.</td></tr>
+    <tr><td><code>appViewModelFactory</code></td><td><span class="path">ui/ViewModelFactory.kt</span></td><td>Skapar ViewModels med beroenden från <code>AppContainer</code>.</td></tr>
+  </table>
+
+  <h3 id="k-core">core/ – gemensamma verktyg</h3>
+  <table>
+    <tr><th>Klass</th><th>Fil:rad</th><th>Ansvar</th></tr>
+    <tr><td><code>AppError</code> (sealed)</td><td><span class="path">core/AppError.kt:7</span></td><td>Alla feltyper: MissingApiKey, InvalidApiKey, RateLimited, NotFound, BadRequest, Server, Network, Parse, Unexpected. <code>isRetryable</code> = Network eller Server. Här finns även <code>MissingApiKeyException</code>, <code>DataNotFoundException</code> och <code>LocalRateLimitException</code>.</td></tr>
+    <tr><td><code>ErrorMapper</code></td><td><span class="path">core/ErrorMapper.kt:8</span></td><td>Exception/HTTP-kod → <code>AppError</code>. 401/403 → nyckelfel, 429 → RateLimited (läser <code>Retry-After</code>), 5xx → Server, timeout → Network.</td></tr>
+    <tr><td><code>Outcome</code>, <code>FetchMeta</code>, <code>DataOrigin</code></td><td><span class="path">core/Outcome.kt</span></td><td>Resultat från repositoryt: <code>Success(value, meta)</code> eller <code>Failure(error)</code>. <code>meta</code> säger varifrån datan kom (NETWORK/CACHE/DEMO), när den hämtades och om den är inaktuell (<code>staleReason</code>).</td></tr>
+    <tr><td><code>RetryPolicy</code>, <code>retryTransient()</code></td><td><span class="path">core/Retry.kt:8</span></td><td>Exponentiell backoff med jitter; gör bara omförsök vid transienta fel.</td></tr>
+    <tr><td><code>RateLimiter</code></td><td><span class="path">core/RateLimiter.kt:10</span></td><td>Glidande fönster, trådsäker. Används i <code>RemoteTrafiklabDataSource</code> per HTTP-försök.</td></tr>
+    <tr><td><code>TtlCache</code></td><td><span class="path">core/TtlCache.kt:8</span></td><td>LRU-minnescache med utgångstid (turer, sökningar).</td></tr>
+    <tr><td><code>SwedishZone</code>, <code>TimeFormats</code>, <code>parseApiDateTime()</code></td><td><span class="path">core/Time.kt</span></td><td>All tid tolkas i Europe/Stockholm; tålig tidsparsning.</td></tr>
+  </table>
+
+  <h3 id="k-domain">domain/ – affärslogik (ren Kotlin, enhetstestad)</h3>
+  <table>
+    <tr><th>Klass</th><th>Fil:rad</th><th>Ansvar</th></tr>
+    <tr><td><code>TimetableEntry</code></td><td><span class="path">domain/model/Transit.kt:78</span></td><td>En avgång/ankomst. <code>operatorLabel</code> (operatör, annars huvudman), <code>platform</code>, <code>platformChanged</code>.</td></tr>
+    <tr><td><code>StopBoard</code></td><td><span class="path">domain/model/Transit.kt:118</span></td><td>En hållplats tavla: namn, hållplatsmeddelanden, avgångar, fönster.</td></tr>
+    <tr><td><code>Line</code>, <code>Alert</code>, <code>AlertTypes</code>, <code>TransportMode</code>, <code>BoardKind</code>, <code>TimeWindow</code></td><td><span class="path">domain/model/Transit.kt</span></td><td>Linje, meddelande (med svensk typetikett och <code>dedupeKey</code>), trafikslag, Avgångar/Ankomster, Nästa/Senaste 60 min.</td></tr>
+    <tr><td><code>TripDetails</code>, <code>TripCall</code></td><td><span class="path">domain/model/Trip.kt</span></td><td>En tur och dess hållplatser med ankomst/avgång, försening och inställt.</td></tr>
+    <tr><td><code>StopGroup</code>, <code>WatchedStop</code>, <code>AreaType</code></td><td><span class="path">domain/model/Stops.kt</span></td><td>Sökträff, bevakad hållplats.</td></tr>
+    <tr><td><code>PunctualityPolicy</code></td><td><span class="path">domain/Punctuality.kt:10</span></td><td><code>classify()</code> → <code>DepartureStatus</code>; <code>health()</code> → <code>HealthStatus</code>. Trösklarna finns här.</td></tr>
+    <tr><td><code>BoardKpis</code></td><td><span class="path">domain/Punctuality.kt:68</span></td><td>KPI:er för en mängd avgångar: punktlighet, realtidstäckning, medel-/maxförsening. Kan summeras med <code>+</code>.</td></tr>
+    <tr><td><code>DepartureStatus</code>, <code>HealthStatus</code></td><td><span class="path">domain/Punctuality.kt:51, 62</span></td><td>CANCELED, SEVERELY_LATE, LATE, EARLY, ON_TIME, NO_REALTIME · OK, WARNING, CRITICAL, UNKNOWN.</td></tr>
+    <tr><td><code>TripAnalyzer</code></td><td><span class="path">domain/TripAnalyzer.kt:37</span></td><td>Försening per hållplats, senast passerade hållplats, försening nu, prognos vid ändhållplats, största ökning mellan två hållplatser (≥ 60 s).</td></tr>
+    <tr><td><code>lineKeyOf()</code>, <code>filterLines()</code>, <code>LineOptions</code></td><td><span class="path">domain/Lines.kt:10</span></td><td>Linjenyckel per riktning, filtrering av avgångar, valbara linjer (även valda som saknar avgångar just nu).</td></tr>
+    <tr><td><code>filterOperator()</code>, <code>OperatorOptions</code></td><td><span class="path">domain/Operators.kt</span></td><td>Operatörsfilter ("contains", skiftlägesokänsligt). Nobina sorteras först.</td></tr>
+  </table>
+
+  <h3 id="k-data">data/ – hämtning, cache och lagring</h3>
+  <table>
+    <tr><th>Klass</th><th>Fil:rad</th><th>Ansvar</th></tr>
+    <tr><td><code>TrafiklabApi</code></td><td><span class="path">data/remote/TrafiklabApi.kt:11</span></td><td>Retrofit-interface med de sex endpoints (avsnitt 3).</td></tr>
+    <tr><td><code>NetworkModule</code></td><td><span class="path">data/remote/NetworkModule.kt:13</span></td><td>Bas-URL, tolerant JSON-konfiguration, OkHttp (timeouts, User-Agent, loggning med maskerad nyckel i debug).</td></tr>
+    <tr><td><code>*Dto</code></td><td><span class="path">data/remote/dto/TrafiklabDtos.kt</span></td><td>Exakt JSON-format från Trafiklab; alla icke-nödvändiga fält har standardvärden.</td></tr>
+    <tr><td><code>TrafiklabDataSource</code> (interface)</td><td><span class="path">data/source/TrafiklabDataSource.kt:19</span></td><td><code>board()</code>, <code>trip()</code>, <code>searchStops()</code>. Två implementationer: live och demo.</td></tr>
+    <tr><td><code>RemoteTrafiklabDataSource</code></td><td><span class="path">data/source/TrafiklabDataSource.kt:30</span></td><td>Kontrollerar nyckel och <code>RateLimiter</code> före varje HTTP-anrop.</td></tr>
+    <tr><td><code>DemoTrafiklabDataSource</code></td><td><span class="path">data/demo/DemoTrafiklabDataSource.kt:40</span></td><td>Genererar avgångar och turer deterministiskt från seed (samma resultat vid omladdning; tur och tavla stämmer överens).</td></tr>
+    <tr><td><code>DemoNetwork</code></td><td><span class="path">data/demo/DemoNetwork.kt:43</span></td><td>Demonätet: Malmö C, Stockholm C, Göteborg C, Kista centrum med linjer, operatörer och störningar.</td></tr>
+    <tr><td><code>TrafiklabMappers</code></td><td><span class="path">data/mapper/TrafiklabMappers.kt</span></td><td><code>toStopBoard()</code>, <code>toDomain()</code>, <code>toTripDetails()</code>. Avgångar som saknar nödvändiga fält hoppas över.</td></tr>
+    <tr><td><code>TrafficRepository</code></td><td><span class="path">data/repository/TrafficRepository.kt:45</span></td><td>Enda ingången för trafikdata: <code>board()</code>, <code>trip()</code>, <code>searchStops()</code>, <code>pruneCache()</code>. Flödet beskrivs i avsnitt 4.2.</td></tr>
+    <tr><td><code>WatchlistRepository</code></td><td><span class="path">data/repository/WatchlistRepository.kt:21</span></td><td>Bevakningslistan (separat för demo/live), <code>add()</code> → <code>AddResult</code>, max 8, förslag.</td></tr>
+    <tr><td><code>LineFilterRepository</code></td><td><span class="path">data/repository/LineFilterRepository.kt:11</span></td><td><code>filters</code> (areaId → valda linjer), <code>filterFor(areaId)</code>, <code>setFilter()</code>. Separat för demo och live.</td></tr>
+    <tr><td><code>SettingsRepository</code>, <code>AppSettings</code></td><td><span class="path">data/settings/SettingsRepository.kt:43, 22</span></td><td>Läser/skriver DataStore. <code>effectiveApiKey()</code> = nyckel sparad i appen, annars nyckeln från bygget.</td></tr>
+    <tr><td><code>WatchlistMonitor</code></td><td><span class="path">data/live/WatchlistMonitor.kt:62</span></td><td><code>snapshot: StateFlow&lt;WatchlistSnapshot&gt;</code>. <code>refresh()</code> hämtar alla hållplatser; reagerar själv på ändrad lista eller datakälla.</td></tr>
+    <tr><td><code>TrafikpulsDatabase</code>, DAO:er, entiteter</td><td><span class="path">data/local/</span></td><td>Room, se avsnitt 7.</td></tr>
+  </table>
+
+  <h3 id="k-ui">ui/ – presentation</h3>
+  <table>
+    <tr><th>Klass / fil</th><th>Ansvar</th></tr>
+    <tr><td><span class="path">ui/dashboard/DashboardViewModel.kt</span></td><td><code>buildDashboardState()</code> (ren funktion, testad) gör om <code>WatchlistSnapshot</code> + <code>AppSettings</code> till <code>DashboardUiState</code>. Hanterar automatisk uppdatering.</td></tr>
+    <tr><td><span class="path">ui/stop/LineFilter.kt</span></td><td><code>LineFilterChip</code> och <code>LineFilterSheet</code> – välj linjer/riktningar att följa.</td></tr>
+    <tr><td><span class="path">ui/stop/StopBoardViewModel.kt</span></td><td><code>BoardQuery</code> (typ + fönster), <code>setLineFilter()</code>. <code>launchFetch()</code> med generationsräknare, så att bara senaste förfrågan skriver tillstånd.</td></tr>
+    <tr><td><span class="path">ui/trip/TripViewModel.kt</span></td><td>Hämtar turen, kör <code>TripAnalyzer</code>, håller vald hållplats i diagrammet.</td></tr>
+    <tr><td><span class="path">ui/trip/DelayChart.kt</span></td><td>Diagram med Compose Canvas: Y-skala i minuter, rutnät, gränslinje, markerad värsta sträcka, tonad prognos, tryck/dra för att välja hållplats.</td></tr>
+    <tr><td><span class="path">ui/alerts/AlertsViewModel.kt</span></td><td><code>buildAlertsState()</code> slår ihop meddelanden via <code>Alert.dedupeKey</code>.</td></tr>
+    <tr><td><span class="path">ui/search/SearchViewModel.kt</span></td><td><code>SearchResult</code> (Idle, TooShort, Loading, Results, NoMatches, Failed).</td></tr>
+    <tr><td><span class="path">ui/settings/SettingsViewModel.kt</span></td><td>Skriver inställningar och startar "Kör kontroll nu".</td></tr>
+    <tr><td><span class="path">ui/components/</span></td><td><code>LineBadge</code>, <code>DelayBadge</code>, <code>HealthBadge</code> (Badges.kt); <code>PanelCard</code>, <code>KpiTile</code>, <code>MessageBanner</code>, <code>EmptyState</code>, <code>ErrorState</code>, <code>AttributionFooter</code> (Panels.kt); <code>DepartureRow</code>; <code>OperatorFilterRow</code>.</td></tr>
+    <tr><td><span class="path">ui/format/Format.kt</span></td><td>Svensk formatering: tider, "+4 min", procent, felmeddelanden.</td></tr>
+    <tr><td><span class="path">ui/theme/Theme.kt</span></td><td>Material 3-färger (ljust/mörkt) och <code>TrafikpulsColors</code> (status- och trafikslagsfärger, validerade för färgblindhet).</td></tr>
+  </table>
+</section>
+
+<section id="lagring">
+  <h2>7. Lagring</h2>
+  <h3>Room – databasen <code>trafikpuls.db</code></h3>
+  <p><span class="path">data/local/TrafikpulsDatabase.kt</span>, <span class="path">Entities.kt</span>, <span class="path">Daos.kt</span>. Schemat exporteras till <span class="path">app/schemas/</span>.</p>
+  <table>
+    <tr><th>Tabell</th><th>Nyckel</th><th>Innehåll</th><th>DAO</th></tr>
+    <tr><td><code>watched_stops</code></td><td><code>(areaId, demo)</code></td><td>Bevakade hållplatser: namn, trafikslag, ordning. <code>demo</code> skiljer demolistan från livelistan. Demolistan fylls i första gången databasen skapas.</td><td><code>WatchedStopDao</code></td></tr>
+    <tr><td><code>board_cache</code></td><td><code>cacheKey</code> = <code>"DEPARTURES:UPCOMING:740000003"</code></td><td>Senaste lyckade API-svar som JSON + hämtningstid. Används för 30 s färskhet och 30 min reserv.</td><td><code>BoardCacheDao</code></td></tr>
+    <tr><td><code>line_filters</code></td><td><code>(areaId, demo, lineKey)</code>, t.ex. <code>"BUS|311|Brommaplan"</code></td><td>Linjer/riktningar användaren följer per hållplats. Inga rader = alla linjer.</td><td><code>LineFilterDao</code></td></tr>
+    <tr><td><s><code>notified_events</code></s></td><td><code>eventKey</code> = <code>"CANCELED|tripId|datum|stop|tid"</code></td><td>Avvikelser som redan notifierats. Rensas efter 12 h.</td><td><code>NotifiedEventDao</code></td></tr>
+  </table>
+  <h3>DataStore – <code>settings</code></h3>
+  <table>
+    <tr><th>Nyckel</th><th>Standard</th><th>Betydelse</th></tr>
+    <tr><td><code>api_key</code></td><td>tom</td><td>Nyckel som angetts i appen (överskuggar <code>BuildConfig.TRAFIKLAB_API_KEY</code>).</td></tr>
+    <tr><td><code>demo_mode</code></td><td>på om ingen nyckel finns</td><td>Demoläge.</td></tr>
+    <tr><td><code>late_threshold_minutes</code></td><td>3</td><td>Gräns för "i tid".</td></tr>
+    <tr><td><code>operator_filter</code></td><td>ingen</td><td>Valt operatörsfilter.</td></tr>
+    <tr><td><s><code>monitor_enabled</code> / <code>monitor_delay_minutes</code> / <code>monitor_cancellations</code></s> (används inte längre)</td><td>av / 10 / på</td><td>Bakgrundsbevakning.</td></tr>
+  </table>
+  <p class="note">Varken databas eller inställningar säkerhetskopieras (<code>allowBackup=false</code> och <span class="path">res/xml/data_extraction_rules.xml</span>), så nyckeln lämnar aldrig telefonen.</p>
+</section>
+
+<section id="regler">
+  <h2>8. Affärsregler</h2>
+  <p>Alla regler ligger i <span class="path">domain/Punctuality.kt</span> (<code>PunctualityPolicy</code>).</p>
+  <table>
+    <tr><th>Status för en avgång</th><th>Regel</th></tr>
+    <tr><td>Inställd</td><td><code>canceled = true</code> (gäller före allt annat)</td></tr>
+    <tr><td>Tidtabell (ingen realtid)</td><td><code>is_realtime = false</code>; räknas inte i punktligheten</td></tr>
+    <tr><td>Kraftigt försenad</td><td>≥ 600 s (10 min)</td></tr>
+    <tr><td>Försenad</td><td>&gt; gränsen (standard 180 s)</td></tr>
+    <tr><td>Tidig</td><td>&lt; −60 s</td></tr>
+    <tr><td>I tid</td><td>allt annat</td></tr>
+  </table>
+  <table>
+    <tr><th>KPI</th><th>Formel</th></tr>
+    <tr><td>Punktlighet</td><td>i tid ÷ avgångar med realtid (inställda och utan realtid exkluderas)</td></tr>
+    <tr><td>Realtidstäckning</td><td>avgångar med realtid ÷ (alla − inställda)</td></tr>
+    <tr><td>Medelförsening</td><td>summa förseningar ÷ avgångar med realtid</td></tr>
+  </table>
+  <table>
+    <tr><th>Hälsa (per hållplats och totalt)</th><th>Regel</th></tr>
+    <tr><td>Störd trafik</td><td>punktlighet &lt; 75 % <i>eller</i> ≥ 5 % inställda <i>eller</i> ≥ 5 % kraftigt försenade</td></tr>
+    <tr><td>Avvikelser</td><td>punktlighet &lt; 90 % <i>eller</i> minst en inställd eller kraftigt försenad</td></tr>
+    <tr><td>Normal drift</td><td>annars</td></tr>
+    <tr><td>Inget underlag</td><td>inga avgångar, eller inga med realtid</td></tr>
+  </table>
+</section>
+
+<section id="robust">
+  <h2>9. Robusthet – siffror och var de definieras</h2>
+  <table>
+    <tr><th>Värde</th><th>Inställning</th><th>Var</th></tr>
+    <tr><td>Färsk cache för tavlor</td><td>30 s</td><td><code>TrafficRepository.FRESH_TTL</code></td></tr>
+    <tr><td>Max ålder för sparad reservdata</td><td>30 min</td><td><code>TrafficRepository.STALE_MAX_AGE</code></td></tr>
+    <tr><td>Minnescache turer / sökningar</td><td>30 s / 10 min</td><td><code>TRIP_TTL</code>, <code>SEARCH_TTL</code></td></tr>
+    <tr><td>Klientens anropsgräns</td><td>20 per 60 s (Trafiklab Bronze: 25)</td><td><code>AppContainer</code> → <code>RateLimiter</code></td></tr>
+    <tr><td>Omförsök</td><td>2 st, 600 ms × 2,5, max 5 s, ±20 % jitter</td><td><code>RetryPolicy.Default</code></td></tr>
+    <tr><td>Timeouts</td><td>connect 10 s, read 15 s, totalt 25 s</td><td><code>NetworkModule.okHttpClient()</code></td></tr>
+    <tr><td>Parallella hämtningar</td><td>4</td><td><code>WatchlistMonitor.MAX_PARALLEL_REQUESTS</code></td></tr>
+    <tr><td>Debounce vid ändrad bevakningslista</td><td>400 ms</td><td><code>WatchlistMonitor</code></td></tr>
+    <tr><td>Automatisk uppdatering i vyer</td><td>60 s, bara när vyn syns</td><td><code>DashboardViewModel.AUTO_REFRESH_MILLIS</code> m.fl.</td></tr>
+    <tr><td>Max bevakade hållplatser</td><td>8</td><td><code>WatchlistRepository.MAX_WATCHED</code></td></tr>
+    <tr><td>Sök</td><td>minst 3 tecken, 350 ms debounce</td><td><code>SearchViewModel</code></td></tr>
+    <tr><td>Bakgrundsjobb</td><td>inga – data hämtas bara när en vy syns</td><td><code>LifecycleStartEffect</code> i varje skärm</td></tr>
+  </table>
+</section>
+
+<section id="bygg">
+  <h2>10. Bygge och tester</h2>
+  <table>
+    <tr><th>Vad</th><th>Hur</th></tr>
+    <tr><td>API-nyckel</td><td><code>TRAFIKLAB_API_KEY=…</code> i <span class="path">local.properties</span> → <code>BuildConfig.TRAFIKLAB_API_KEY</code> (<span class="path">app/build.gradle.kts</span>)</td></tr>
+    <tr><td>Debug-APK + tester</td><td><code>build-apk.cmd</code></td></tr>
+    <tr><td>Release-APK (R8, ~2 MB)</td><td><code>gradlew :app:assembleRelease</code>; R8-regler i <span class="path">app/proguard-rules.pro</span></td></tr>
+    <tr><td>Enhetstester</td><td><code>gradlew :app:testDebugUnitTest</code></td></tr>
+    <tr><td>Lint</td><td><code>gradlew :app:lintDebug</code>; undantag i <span class="path">app/lint.xml</span></td></tr>
+  </table>
+  <table>
+    <tr><th>Testfil (<span class="path">app/src/test/java/com/simon/trafikpuls/</span>)</th><th>Testar</th></tr>
+    <tr><td><span class="path">data/mapper/TrafiklabParsingTest.kt</span></td><td>Parsning av dokumenterade JSON-svar (fixtures)</td></tr>
+    <tr><td><span class="path">data/repository/TrafficRepositoryTest.kt</span></td><td>Repositoryt mot MockWebServer: cache, fel, retry, kvot, tidsfönster</td></tr>
+    <tr><td><span class="path">data/live/WatchlistMonitorTest.kt</span></td><td>Gammal data visas aldrig som aktuell; linjefiltret slår igenom; ihopslagna uppdateringar</td></tr>
+    <tr><td><span class="path">data/demo/DemoDataSourceTest.kt</span></td><td>Demodatans konsistens</td></tr>
+    <tr><td><span class="path">domain/*Test.kt</span></td><td>Punktlighet, hälsa, turanalys, linjefilter, ursprungstext, operatörsfilter</td></tr>
+    <tr><td><span class="path">core/CoreTest.kt</span></td><td>Rate limiter, retry, felmappning, tidsparsning</td></tr>
+    <tr><td><span class="path">ui/dashboard/DashboardStateTest.kt</span></td><td>Översiktens tillståndslogik</td></tr>
+  </table>
+</section>
+
+<section id="hitta">
+  <h2>11. "Var ändrar jag …?"</h2>
+  <table>
+    <tr><th>Om du vill …</th><th>Ändra i</th></tr>
+    <tr><td>ändra vad som räknas som försenad, tidig eller störd trafik</td><td><span class="path">domain/Punctuality.kt</span> (<code>PunctualityPolicy</code>)</td></tr>
+    <tr><td>lägga till ett nytt API-anrop</td><td><span class="path">data/remote/TrafiklabApi.kt</span> → DTO i <span class="path">dto/TrafiklabDtos.kt</span> → <span class="path">data/source/TrafiklabDataSource.kt</span> (+ demo) → mapper → <span class="path">TrafficRepository.kt</span></td></tr>
+    <tr><td>byta operatör som sorteras först</td><td><code>OperatorOptions.HIGHLIGHTED</code> i <span class="path">domain/Operators.kt</span></td></tr>
+    <tr><td>ändra uppdateringsintervall eller kvotgräns</td><td><code>AUTO_REFRESH_MILLIS</code> i ViewModels; <code>RateLimiter</code> i <span class="path">AppContainer.kt</span>; TTL i <span class="path">TrafficRepository.kt</span></td></tr>
+    <tr><td>ändra hur linjer identifieras eller sorteras i filtret</td><td><span class="path">domain/Lines.kt</span> (<code>lineKeyOf</code>, <code>LineOptions</code>)</td></tr>
+    <tr><td>ändra texten "Från …" / "Startar här"</td><td><code>Format.origin()</code> i <span class="path">ui/format/Format.kt</span></td></tr>
+    <tr><td>lägga till eller ändra demohållplatser och demolinjer</td><td><span class="path">data/demo/DemoNetwork.kt</span></td></tr>
+    <tr><td>ändra färger</td><td><span class="path">ui/theme/Theme.kt</span></td></tr>
+    <tr><td>ändra texter och felmeddelanden</td><td>respektive <span class="path">*Screen.kt</span>; felmeddelanden i <span class="path">ui/format/Format.kt</span></td></tr>
+    <tr><td>lägga till en ny skärm</td><td>rutt i <span class="path">ui/navigation/Routes.kt</span> → <code>composable&lt;…&gt;</code> i <span class="path">ui/TrafikpulsAppRoot.kt</span> → ny <code>Screen</code> + <code>ViewModel</code> med <code>appViewModelFactory</code></td></tr>
+    <tr><td>ändra databasen</td><td><span class="path">data/local/</span>; höj <code>version</code> i <code>@Database</code> och lägg till en migrering</td></tr>
+  </table>
+  <p class="note">Data från Trafiklab.se (Trafiklab Realtime APIs), CC BY 4.0. Demoläget är fiktiv trafik. Inte en officiell Nobina-produkt.</p>
+</section>
+
+</main>
+</div>
+</body>
+</html>

@@ -1,0 +1,113 @@
+{
+  "timestamp": "2026-01-20T15:17:55",
+  "query": { "queryTime": "2026-01-20T00:00:00", "query": "121120000372401393" },
+  "agency": { "id": "505000000000000012", "name": "Skånetrafiken", "operator": "Bergkvarabuss AB" },
+  "route": {
+    "name": "Malmö  - Skanör",
+    "designation": "15",
+    "transport_mode_code": 700,
+    "transport_mode": "BUS",
+    "direction": "SkåneExpressen Malmö C",
+    "origin": { "id": "27782", "name": "Skanör Haga" },
+    "destination": { "id": "3", "name": "Malmö Centralstation" }
+  },
+  "trip": { "trip_id": "121120000372401393", "start_date": "2026-01-20", "technical_number": 84 },
+  "calls": [
+    {
+      "scheduledDeparture": "2026-01-20T14:29:00",
+      "realtimeDeparture": "2026-01-20T14:29:09",
+      "departureDelay": 9,
+      "departureCanceled": false,
+      "scheduledArrival": "2026-01-20T14:29:00",
+      "realtimeArrival": "2026-01-20T14:27:49",
+      "arrivalDelay": -71,
+      "arrivalCanceled": false,
+      "stop": { "id": "27782", "area_id": "740012583", "name": "Skanör Haga", "lat": 55.407469, "lon": 12.865432 },
+      "scheduled_platform": { "id": "9022050027782002", "designation": "B" },
+      "realtime_platform": { "id": "9022050027782002", "designation": "B" },
+      "alerts": [],
+      "is_realtime": true
+    },
+    {
+      "scheduledDeparture": "2026-01-20T14:32:57",
+      "realtimeDeparture": "2026-01-20T14:33:08",
+      "departureDelay": 11,
+      "departureCanceled": false,
+      "scheduledArrival": "2026-01-20T14:32:57",
+      "realtimeArrival": "2026-01-20T14:32:32",
+      "arrivalDelay": -25,
+      "arrivalCanceled": false,
+      "stop": { "id": "1231", "area_id": "740001231", "name": "Ljunghusen Storvägen", "lat": 55.405538, "lon": 12.920899 },
+      "scheduled_platform": { "id": "9022050001231002", "designation": "B" },
+      "realtime_platform": { "id": "9022050001231002", "designation": "B" },
+      "alerts": [],
+      "is_realtime": true
+    },
+    {
+      "scheduledDeparture": "2026-01-20T14:38:00",
+      "realtimeDeparture": "2026-01-20T14:41:30",
+      "departureDelay": 210,
+      "departureCanceled": false,
+      "scheduledArrival": "2026-01-20T14:38:00",
+      "realtimeArrival": "2026-01-20T14:41:10",
+      "arrivalDelay": 190,
+      "arrivalCanceled": false,
+      "stop": { "id": "60011", "area_id": "740076441", "name": "Höllviken Nyckelhålsparken", "lat": 55.419085, "lon": 12.950939 },
+      "scheduled_platform": { "id": "9022050060011002", "designation": "B" },
+      "realtime_platform": { "id": "9022050060011002", "designation": "B" },
+      "alerts": [],
+      "is_realtime": true
+    },
+    {
+      "scheduledDeparture": "2026-01-20T14:48:00",
+      "realtimeDeparture": "2026-01-20T14:52:00",
+      "departureDelay": 240,
+      "departureCanceled": false,
+      "scheduledArrival": "2026-01-20T14:48:00",
+      "realtimeArrival": "2026-01-20T14:51:40",
+      "arrivalDelay": 220,
+      "arrivalCanceled": false,
+      "stop": { "id": "27819", "area_id": "740020262", "name": "Vellinge Ängar", "lat": 55.472313, "lon": 13.01021 },
+      "scheduled_platform": { "id": "9022050027819002", "designation": "B" },
+      "realtime_platform": { "id": "9022050027819002", "designation": "B" },
+      "alerts": [
+        {
+          "type": "CONSTRUCTION",
+          "title": "Trafikinformation: Hållplats Vellinge Ängar",
+          "text": "Läge D är stängt på grund av nybyggnation."
+        }
+      ],
+      "is_realtime": true
+    },
+    {
+      "scheduledDeparture": "2026-01-20T14:59:18",
+      "realtimeDeparture": null,
+      "departureDelay": null,
+      "departureCanceled": true,
+      "scheduledArrival": "2026-01-20T14:59:18",
+      "realtimeArrival": null,
+      "arrivalDelay": null,
+      "arrivalCanceled": true,
+      "stop": { "id": "27006", "area_id": "740016287", "name": "Malmö Mobilia Öster", "lat": 55.581464, "lon": 13.005878 },
+      "scheduled_platform": null,
+      "realtime_platform": null,
+      "alerts": [],
+      "is_realtime": true
+    },
+    {
+      "scheduledDeparture": null,
+      "realtimeDeparture": null,
+      "departureDelay": null,
+      "departureCanceled": false,
+      "scheduledArrival": "2026-01-20T15:10:00",
+      "realtimeArrival": "2026-01-20T15:14:20",
+      "arrivalDelay": 260,
+      "arrivalCanceled": false,
+      "stop": { "id": "3", "area_id": "740000003", "name": "Malmö Centralstation", "lat": 55.608777, "lon": 13.000216 },
+      "scheduled_platform": { "id": "9022050000003004", "designation": "D" },
+      "realtime_platform": { "id": "9022050000003004", "designation": "D" },
+      "alerts": [],
+      "is_realtime": true
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+# Built application files
+*.apk
+*.aar
+*.ap_
+*.aab
+
+# Gradle / build output
+.gradle/
+build/
+app/build/
+*/build/
+
+# Local configuration (SDK path + Trafiklab API key - never commit)
+local.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.iws
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Keystore / signing (never commit secrets)
+*.jks
+*.keystore
+
+# Logs and OS files
+*.log
+.DS_Store
+Thumbs.db
+
+# Misc
+/.kotlin/

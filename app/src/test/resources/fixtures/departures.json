@@ -1,0 +1,184 @@
+{
+  "timestamp": "2025-04-01T14:22:43",
+  "query": {
+    "queryTime": "2025-04-01T14:22:00",
+    "query": "740000002"
+  },
+  "stops": [
+    {
+      "id": "71314",
+      "name": "Göteborg C",
+      "lat": 57.708918,
+      "lon": 11.973946,
+      "transport_modes": ["TRAIN"],
+      "alerts": []
+    },
+    {
+      "id": "2",
+      "name": "Göteborg Centralstation",
+      "lat": 57.709299,
+      "lon": 11.973659,
+      "transport_modes": ["TRAIN", "BUS"],
+      "alerts": [
+        {
+          "type": "CONSTRUCTION",
+          "title": "Hållplatsläge B flyttat",
+          "text": "Läge B är tillfälligt flyttat till Nils Ericsonsgatan."
+        }
+      ]
+    }
+  ],
+  "departures": [
+    {
+      "scheduled": "2025-04-01T14:30:00",
+      "realtime": "2025-04-01T14:30:00",
+      "delay": 0,
+      "canceled": false,
+      "route": {
+        "name": "Västtågen",
+        "designation": "3258",
+        "transport_mode_code": 100,
+        "transport_mode": "TRAIN",
+        "direction": "Vänersborg",
+        "origin": { "id": "2", "name": "Göteborg Centralstation" },
+        "destination": { "id": "241", "name": "Vänersborg central" }
+      },
+      "trip": { "trip_id": "141010001327690347", "start_date": "2025-04-01", "technical_number": 130 },
+      "agency": { "id": "505000000000000014", "name": "Västtrafik", "operator": "SJ Götalandståg" },
+      "stop": { "id": "2", "name": "Göteborg Centralstation", "lat": 57.709299, "lon": 11.973659 },
+      "scheduled_platform": { "id": "9022050000002017", "designation": "9" },
+      "realtime_platform": { "id": "9022050000002017", "designation": "9" },
+      "alerts": [],
+      "advanceOrder": { "message": "Resan måste beställas på sl.se senast 2 timmar innan avgång" },
+      "is_realtime": false
+    },
+    {
+      "scheduled": "2025-04-01T14:32:00",
+      "realtime": "2025-04-01T14:36:05",
+      "delay": 245,
+      "canceled": false,
+      "route": {
+        "name": null,
+        "designation": "16",
+        "transport_mode_code": 700,
+        "transport_mode": "BUS",
+        "direction": "Eketrägatan",
+        "origin": { "id": "2", "name": "Göteborg Centralstation" },
+        "destination": { "id": "4100", "name": "Eketrägatan" }
+      },
+      "trip": { "trip_id": "141010001327690400", "start_date": "2025-04-01", "technical_number": 512 },
+      "agency": { "id": "505000000000000014", "name": "Västtrafik", "operator": "Nobina Sverige AB" },
+      "stop": { "id": "2", "name": "Göteborg Centralstation", "lat": 57.709299, "lon": 11.973659 },
+      "scheduled_platform": { "id": "9022050000002101", "designation": "F" },
+      "realtime_platform": { "id": "9022050000002102", "designation": "G" },
+      "alerts": [],
+      "is_realtime": true,
+      "some_future_field": { "added": "without notice" }
+    },
+    {
+      "scheduled": "2025-04-01T14:35:00",
+      "realtime": "2025-04-01T14:35:00",
+      "delay": 0,
+      "canceled": true,
+      "route": {
+        "name": null,
+        "designation": "18",
+        "transport_mode_code": 700,
+        "transport_mode": "BUS",
+        "direction": "Skälltorpsvägen",
+        "origin": { "id": "2", "name": "Göteborg Centralstation" },
+        "destination": { "id": "4200", "name": "Skälltorpsvägen" }
+      },
+      "trip": { "trip_id": "141010001327690500", "start_date": "2025-04-01", "technical_number": 201 },
+      "agency": { "id": "505000000000000014", "name": "Västtrafik", "operator": "Nobina Sverige AB" },
+      "stop": { "id": "2", "name": "Göteborg Centralstation", "lat": 57.709299, "lon": 11.973659 },
+      "scheduled_platform": { "id": "9022050000002103", "designation": "H" },
+      "realtime_platform": null,
+      "alerts": [
+        {
+          "type": "OTHER_CAUSE",
+          "title": "Inställd tur",
+          "text": "Turen är inställd på grund av fordonsbrist."
+        }
+      ],
+      "is_realtime": true
+    },
+    {
+      "scheduled": "2025-04-01T14:59:00",
+      "realtime": "2025-04-01T14:59:30",
+      "delay": 30,
+      "canceled": false,
+      "route": {
+        "name": "MTRX",
+        "designation": null,
+        "transport_mode_code": 100,
+        "transport_mode": "TRAIN",
+        "direction": "Stockholm C",
+        "origin": { "id": "71314", "name": "Göteborg C" },
+        "destination": { "id": "1", "name": "Stockholm Centralstation" }
+      },
+      "trip": { "trip_id": "680000000000000109", "start_date": "2025-04-01", "technical_number": 27580 },
+      "agency": { "id": "505000000000000159", "name": "MTR Express AB", "operator": "MTR Express AB" },
+      "stop": { "id": "71314", "name": "Göteborg C", "lat": 57.708918, "lon": 11.973946 },
+      "scheduled_platform": null,
+      "realtime_platform": null,
+      "alerts": [],
+      "is_realtime": true
+    },
+    {
+      "scheduled": "2025-04-01T14:40:00",
+      "realtime": "2025-04-01T14:38:25",
+      "delay": -95,
+      "canceled": false,
+      "route": {
+        "name": null,
+        "designation": "19",
+        "transport_mode_code": 700,
+        "transport_mode": "BUS",
+        "direction": "Fredriksdal",
+        "origin": { "id": "2", "name": "Göteborg Centralstation" },
+        "destination": { "id": "4300", "name": "Fredriksdal" }
+      },
+      "trip": { "trip_id": "141010001327690600", "start_date": "2025-04-01", "technical_number": 77 },
+      "agency": { "id": "505000000000000014", "name": "Västtrafik", "operator": "Nobina Sverige AB" },
+      "stop": { "id": "2", "name": "Göteborg Centralstation", "lat": 57.709299, "lon": 11.973659 },
+      "scheduled_platform": { "id": "9022050000002104", "designation": "J" },
+      "realtime_platform": { "id": "9022050000002104", "designation": "J" },
+      "alerts": [],
+      "is_realtime": true
+    },
+    {
+      "scheduled": "2025-04-01T14:45:00",
+      "realtime": "2025-04-01T14:45:00",
+      "delay": null,
+      "canceled": false,
+      "route": {
+        "name": null,
+        "designation": "3",
+        "transport_mode_code": 900,
+        "transport_mode": "TRAM",
+        "direction": "Kålltorp",
+        "origin": { "id": "5000", "name": "Marklandsgatan" },
+        "destination": { "id": "5001", "name": "Kålltorp" }
+      },
+      "trip": { "trip_id": "141010001327690700", "start_date": "20250401", "technical_number": 33 },
+      "agency": { "id": "505000000000000014", "name": "Västtrafik", "operator": null },
+      "stop": { "id": "2", "name": "Göteborg Centralstation", "lat": 57.709299, "lon": 11.973659 },
+      "scheduled_platform": { "id": "9022050000002105", "designation": "C" },
+      "realtime_platform": null,
+      "alerts": [],
+      "is_realtime": false
+    },
+    {
+      "scheduled": "2025-04-01T14:50:00",
+      "realtime": "2025-04-01T14:50:00",
+      "delay": 0,
+      "canceled": false,
+      "route": { "designation": "99", "transport_mode": "BUS", "direction": "Ingenstans" },
+      "agency": { "name": "Västtrafik", "operator": "Nobina Sverige AB" },
+      "stop": { "id": "2", "name": "Göteborg Centralstation" },
+      "alerts": [],
+      "is_realtime": true
+    }
+  ]
+}
